@@ -4,10 +4,10 @@ import {
   ImageGalleryItemImg,
 } from './ImageGalleryItem.styled';
 
-export function ImageGalleryItem() {
+export function ImageGalleryItem({ image: { id, tags, webformatURL } }) {
   return (
     <ImageGalleryItemStyled>
-      <ImageGalleryItemImg src="" alt="" />
+      <ImageGalleryItemImg src={webformatURL} alt={tags} data-id={id} />
     </ImageGalleryItemStyled>
   );
 }

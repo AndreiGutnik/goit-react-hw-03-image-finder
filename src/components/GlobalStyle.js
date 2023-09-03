@@ -41,16 +41,12 @@ img {
 		margin-bottom: 0;
 	}
 
-	h1, h2 {
-		text-align: center;
-		margin-bottom: 24px;
-	}
-
 	ul {
 		margin-top: 0;
 		margin-bottom: 0;
 		padding-left: 0;
 		text-decoration: none;
+		list-style: none;
 	}
 
 	input,
