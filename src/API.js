@@ -9,10 +9,3 @@ export async function getImages(searchQuery, page) {
   );
   return data;
 }
-
-export async function getImagesById(id) {
-  const { data } = await axios.get(
-    `?key=${API_KEY}&image_type=photo&orientation=horizontal&safesearch=true&id=${id}`
-  );
-  return data;
-}

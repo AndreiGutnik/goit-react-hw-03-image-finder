@@ -4,10 +4,17 @@ import {
   ImageGalleryItemImg,
 } from './ImageGalleryItem.styled';
 
-export function ImageGalleryItem({ image: { id, tags, webformatURL } }) {
+export function ImageGalleryItem({
+  image: { tags, webformatURL, largeImageURL },
+  onModalOpen,
+}) {
   return (
     <ImageGalleryItemStyled>
-      <ImageGalleryItemImg src={webformatURL} alt={tags} data-id={id} />
+      <ImageGalleryItemImg
+        src={webformatURL}
+        alt={tags}
+        onClick={() => onModalOpen(largeImageURL, tags)}
+      />
     </ImageGalleryItemStyled>
   );
 }

@@ -1,55 +1,82 @@
 import { Component } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ButtonLoadMore } from './Button/Button';
+import { ThreeDots } from 'react-loader-spinner';
+import { animateScroll as scroll } from 'react-scroll';
+
+import { getImages } from '../API';
 import { GlobalStyle } from './GlobalStyle';
-import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Layout } from './Layout';
 import { Searchbar } from './Searchbar/Searchbar';
+import { ImageGallery } from './ImageGallery/ImageGallery';
+import { ButtonLoadMore } from './Button/Button';
 import { Modal } from './Modal/Modal';
 import { ScrollUp } from './ScrollUp/ScrollUp';
+import { Error } from './Error/Error.styled';
 
 export class App extends Component {
   state = {
     searchQuery: '',
+    images: [],
+    currentImageURL: '',
+    currentImageTags: '',
     page: 1,
-    totalPages: null,
+    totalImages: 0,
     isModal: false,
     isScrollUp: false,
-    isLoader: true,
-    currentImage: '',
+    isLoader: false,
+    isError: false,
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    const { page, totalPages, searchQuery } = this.state;
-    if (page === totalPages) {
-      toast.warning('Sorry, there are no images');
-    }
-    if (prevState.searchQuery !== searchQuery) {
-      this.setState({ isScrollUp: false });
+  async componentDidUpdate(_, prevState) {
+    const { searchQuery, page } = this.state;
+    if (prevState.searchQuery !== searchQuery || prevState.page !== page) {
+      try {
+        this.setState({ isError: false, isLoader: true });
+        const data = await getImages(searchQuery, page);
+        if (data.totalHits === 0) {
+          toast.error(
+            'Sorry, there are no images matching your search query. Please try again.'
+          );
+          return;
+        }
+        this.setState(prevState => ({
+          images: [...prevState.images, ...data.hits],
+          totalImages: data.totalHits,
+        }));
+      } catch (error) {
+        this.setState({ isError: true });
+      } finally {
+        this.setState({ isLoader: false });
+      }
     }
   }
 
-  handleSubmitForm = query => {
-    if (!query) return null;
-    this.setState({ searchQuery: query, page: 1 });
+  onSubmitForm = query => {
+    this.setState({ searchQuery: query, images: [], page: 1, totalImages: 0 });
   };
 
-  handleClickLoadMore = () => {
-    this.setState({ page: this.state.page + 1 });
+  onClickLoadMore = () => {
+    this.setState({ page: this.state.page + 1, isScrollUp: true });
+    scroll.scrollMore(850);
   };
 
-  onModalOpen = imageId => {
-    if (!imageId) return null;
-    this.setState({ currentImage: imageId, isModal: true });
+  onModalOpen = (currentImageURL, tags) => {
+    if (!currentImageURL) {
+      toast.error(
+        'Sorry, but the large image is empty. Please try other picture.'
+      );
+      return;
+    }
+    this.setState({
+      currentImageURL: currentImageURL,
+      currentImageTags: tags,
+      isModal: true,
+    });
   };
 
   onModalClose = () => {
     this.setState({ currentImage: '', isModal: false });
-  };
-
-  updateTotalPages = totalHits => {
-    this.setState({ totalPages: Math.ceil(totalHits / 12) });
   };
 
   onScroll = () => {
@@ -62,42 +89,54 @@ export class App extends Component {
   };
 
   onScrollUp = () => {
-    window.scroll({
-      top: 0,
-      left: 0,
-      behavior: 'smooth',
-    });
+    scroll.scrollToTop();
     this.setState({ isScrollUp: false });
   };
 
-  onLoader = loader => {
-    this.setState({ isLoader: loader });
-  };
-
   render() {
-    const { searchQuery, page, totalPages, isModal, isScrollUp, currentImage } =
-      this.state;
+    const {
+      searchQuery,
+      images,
+      currentImageURL,
+      totalImages,
+      isLoader,
+      isModal,
+      isScrollUp,
+      isError,
+    } = this.state;
     return (
       <div onWheel={this.onScroll}>
-        <Searchbar onSubmit={this.handleSubmitForm} />
-        {searchQuery && (
-          <Layout>
-            <ImageGallery
-              searchQuery={searchQuery}
-              page={page}
-              onModalOpen={this.onModalOpen}
-              totalPages={this.updateTotalPages}
+        <Searchbar onSubmit={this.onSubmitForm} />
+        <Layout>
+          {searchQuery && (
+            <ImageGallery images={images} onModalOpen={this.onModalOpen} />
+          )}
+          {!isLoader && images.length !== totalImages && (
+            <ButtonLoadMore onClick={this.onClickLoadMore} />
+          )}
+          {isLoader && (
+            <ThreeDots
+              height="80"
+              width="80"
+              radius="9"
+              color="#3F51B5"
+              ariaLabel="three-dots-loading"
+              wrapperStyle={{ justifyContent: 'center' }}
+              wrapperClassName=""
+              visible={true}
             />
-            {page < totalPages && (
-              <ButtonLoadMore onClick={this.handleClickLoadMore} page={page} />
-            )}
-            {isModal && (
-              <Modal
-                currentImageId={currentImage}
-                onModalClose={this.onModalClose}
-              />
-            )}
-          </Layout>
+          )}
+          {isError && !isLoader && (
+            <Error>
+              <p>OOPS! There was an ERROR!</p>
+            </Error>
+          )}
+        </Layout>
+        {isModal && (
+          <Modal
+            currentImageURL={currentImageURL}
+            onModalClose={this.onModalClose}
+          />
         )}
         {isScrollUp && <ScrollUp onClick={this.onScrollUp} />}
         <ToastContainer autoClose={3000} />
